@@ -1,0 +1,14 @@
+[
+  {
+    "ParameterKey": "VPCStackName",
+    "ParameterValue": "vpc-subnet-network-by-vivek"
+  },
+  {
+    "ParameterKey": "SecurityGroupStack",
+    "ParameterValue": "security-group-by-vivek"
+  },
+  {
+    "ParameterKey": "ELBStackName",
+    "ParameterValue": "elb-by-vivek"
+  }
+]

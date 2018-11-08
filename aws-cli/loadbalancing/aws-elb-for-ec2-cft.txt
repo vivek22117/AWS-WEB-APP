@@ -1,0 +1,23 @@
+#validate the template
+aws cloudformation validate-template --template-body file://aws-cloudformation/loadbalancing/aws-elb-for-ec2.json
+
+#Execute this command if you want to UPDATE STACK
+aws cloudformation update-stack --stack-name elb-by-vivek \
+--template-body file://aws-cloudformation/loadbalancing/aws-elb-for-ec2.json
+
+#CREATE USING TEMPLATE FILE
+aws --profile yash cloudformation create-stack --stack-name elb-by-vivek --template-body \
+file://aws-cloudformation/loadbalancing/aws-elb-for-ec2.json --parameters file://aws-cloudformation/loadbalancing/parameter/aws-elb-parameters.json
+
+#wait for stack to complete
+aws --profile yash cloudformation wait stack-create-complete --stack-name elb-by-vivek
+
+#DESCRIBE STACK CREATION EVENTS
+aws --profile yash cloudformation describe-stack-events --stack-name elb-by-vivek \
+--query "StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]" --output table
+
+echo 'Waiting for template to complete......'
+
+
+
+

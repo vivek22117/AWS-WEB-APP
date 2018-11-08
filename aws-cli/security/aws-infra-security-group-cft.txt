@@ -1,0 +1,23 @@
+#validate the template
+aws cloudformation validate-template --template-body file://aws-cloudformation/security/aws-infra-security-group.json
+
+#Execute this command if you want to UPDATE STACK
+aws cloudformation update-stack --stack-name vpc-subnet-network-by-vivek \
+--template-body file://aws-cloudformation/security/aws-infra-security-group.json
+
+#CREATE USING TEMPLATE FILE
+aws --profile yash cloudformation create-stack --stack-name security-group-by-vivek --template-body \
+file://aws-cloudformation/security/aws-infra-security-group.json --parameters ParameterKey=VPCStackName,ParameterValue=vpc-subnet-network-by-vivek
+
+#wait for stack to complete
+aws --profile yash cloudformation wait stack-create-complete --stack-name security-group-by-vivek
+
+#DESCRIBE STACK CREATION EVENTS
+aws --profile yash cloudformation describe-stack-events --stack-name security-group-by-vivek \
+--query "StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]" --output table
+
+echo 'Waiting for template to complete......'
+
+
+
+

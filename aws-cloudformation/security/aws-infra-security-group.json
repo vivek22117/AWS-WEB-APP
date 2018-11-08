@@ -1,0 +1,272 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Create Security group for ELB, EC2, DB Servers",
+  "Parameters": {
+    "VPCStackName": {
+      "Description": "VPC to refer",
+      "Type": "String"
+    },
+    "Environment": {
+      "Description": "Environment to which cft is created",
+      "Type": "String",
+      "Default": "devl"
+    }
+  },
+  "Resources": {
+    "ELBSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable HTTP and HTTPS from world",
+        "VpcId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${VPCStackName}-VPCId"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "elb-sg"
+          },
+          {
+            "Key": "component",
+            "Value": "double-digit-test"
+          },
+          {
+            "Key": "environment",
+            "Value": {
+              "Ref": "Environment"
+            }
+          }
+        ]
+      }
+    },
+    "SGOutboundRule": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "IpProtocol": -1,
+        "FromPort": 0,
+        "ToPort": 65535,
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ELBSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "SGInboundRuleForHTTP": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": 6,
+        "FromPort": 80,
+        "ToPort": 80,
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ELBSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "SGInboudnRuleForHTTPS": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": 6,
+        "FromPort": 443,
+        "ToPort": 443,
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "ELBSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "WebServerSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable HTTP traffic from ELB only",
+        "VpcId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${VPCStackName}-VPCId"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "web-server-sg"
+          },
+          {
+            "Key": "component",
+            "Value": "double-digit-test"
+          },
+          {
+            "Key": "environment",
+            "Value": {
+              "Ref": "Environment"
+            }
+          }
+        ]
+      }
+    },
+    "SGOutboundRuleForAll": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "IpProtocol": -1,
+        "FromPort": 0,
+        "ToPort": 65535,
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "WebServerSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "SGInboundRuleForHTTPFromELB": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": 6,
+        "FromPort": 80,
+        "ToPort": 80,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "ELBSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "GroupId": {
+          "Fn::GetAtt": [
+            "WebServerSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "SGInboundRuleForSSHFromWorld": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": 6,
+        "FromPort": 22,
+        "ToPort": 22,
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "WebServerSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "DBServerSecurityGroup": {
+      "Type": "AWS::EC2::SecurityGroup",
+      "Properties": {
+        "GroupDescription": "Enable only form Web-server",
+        "VpcId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${VPCStackName}-VPCId"
+          }
+        },
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "db-server-sg"
+          },
+          {
+            "Key": "component",
+            "Value": "double-digit-test"
+          },
+          {
+            "Key": "environment",
+            "Value": {
+              "Ref": "Environment"
+            }
+          }
+        ]
+      }
+    },
+    "SGOutboundRuleForAllPorts": {
+      "Type": "AWS::EC2::SecurityGroupEgress",
+      "Properties": {
+        "IpProtocol": -1,
+        "FromPort": 0,
+        "ToPort": 65535,
+        "CidrIp": "0.0.0.0/0",
+        "GroupId": {
+          "Fn::GetAtt": [
+            "DBServerSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    },
+    "SGInboundRuleFromWebServer": {
+      "Type": "AWS::EC2::SecurityGroupIngress",
+      "Properties": {
+        "IpProtocol": 6,
+        "FromPort": 3306,
+        "ToPort": 3306,
+        "SourceSecurityGroupId": {
+          "Fn::GetAtt": [
+            "WebServerSecurityGroup",
+            "GroupId"
+          ]
+        },
+        "GroupId": {
+          "Fn::GetAtt": [
+            "DBServerSecurityGroup",
+            "GroupId"
+          ]
+        }
+      }
+    }
+  },
+  "Outputs": {
+    "ELBSG": {
+      "Description": "The Security Group ID of ELB",
+      "Value": {
+        "Fn::GetAtt": [
+          "ELBSecurityGroup",
+          "GroupId"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-ELBSGID"
+        }
+      }
+    },
+    "WebServerSG": {
+      "Description": "The Security Group ID of web-server",
+      "Value": {
+        "Fn::GetAtt": [
+          "WebServerSecurityGroup",
+          "GroupId"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-WSSGID"
+        }
+      }
+    },
+    "DBServerSG": {
+      "Description": "The Security Group ID of DB-Server",
+      "Value": {
+        "Fn::GetAtt": [
+          "DBServerSecurityGroup",
+          "GroupId"
+        ]
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-DBSGID"
+        }
+      }
+    }
+  }
+}

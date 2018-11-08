@@ -1,0 +1,29 @@
+#validate the template
+aws cloudformation validate-template --template-body file://aws-cloudformation/database/aws-rds-database.json
+
+#Execute this command if you want to UPDATE STACK
+aws cloudformation update-stack \
+--stack-name vpc-subnet-network-by-vivek \
+--template-body file://aws-cloudformation/database/aws-rds-database.json
+
+#CREATE USING TEMPLATE FILE
+aws --profile yash cloudformation create-stack \
+--stack-name rds-by-vivek \
+--template-body file://aws-cloudformation/database/aws-rds-database.json \
+--parameters file://aws-cloudformation/database/parameter/aws-rds-parameters.json
+
+#wait for stack to complete
+aws --profile yash cloudformation wait stack-create-complete \
+--stack-name rds-by-vivek
+
+#DESCRIBE STACK CREATION EVENTS
+aws --profile yash cloudformation describe-stack-events \
+--stack-name rds-by-vivek \
+--query "StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]" \
+--output table
+
+echo 'Waiting for template to complete......'
+
+
+
+

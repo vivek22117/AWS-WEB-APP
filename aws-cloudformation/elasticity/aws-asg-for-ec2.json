@@ -1,0 +1,207 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Create EC2 Jenkins build Servers with SecurityGroup",
+  "Parameters": {
+    "VPCStackName": {
+      "Description": "VPC to refer",
+      "Type": "String"
+    },
+    "ELBStackName": {
+      "Description": "Target Group to refer",
+      "Type": "String"
+    },
+    "SecurityGroupStack": {
+      "Description": "Security group stack name",
+      "Type": "String"
+    },
+    "KeyPairName": {
+      "Default": "build-server",
+      "Description": "Key pair for ec2 instances",
+      "Type": "String"
+    },
+    "InstanceType": {
+      "Description": "WebServer EC2 instance type",
+      "Type": "String",
+      "Default": "t2.micro",
+      "AllowedValues": [
+        "t1.micro",
+        "t2.nano",
+        "t2.micro"
+      ],
+      "ConstraintDescription": "must be a valid EC2 instance type."
+    },
+    "Environment": {
+      "Description": "Environment to which cft is created",
+      "Type": "String",
+      "Default": "devl"
+    },
+    "WebServerRole": {
+      "Description": "Instance profile for ec2",
+      "Type": "String",
+      "Default": "web-server-role"
+    },
+    "VersionParameter": {
+      "Description": "Software version to deploy",
+      "Type": "String",
+      "Default": "1"
+    }
+  },
+  "Mappings": {
+    "Region2Examples" : {
+      "us-east-1": {
+        "Examples": "https://s3.amazonaws.com/cloudformation-examples-us-east-1"
+      }
+    },
+    "RegionAMI": {
+      "us-east-1": {
+        "Ubuntu": "ami-0ac019f4fcb7cb7e6",
+        "Linux": "ami-0ff8a91507f77f867"
+      }
+    }
+  },
+  "Resources": {
+    "WebServerInstanceProfile": {
+      "Type": "AWS::IAM::InstanceProfile",
+      "Properties": {
+        "InstanceProfileName": "web-server-instance-profile",
+        "Path": "/",
+        "Roles": [
+          {
+            "Ref": "WebServerRole"
+          }
+        ]
+      }
+    },
+    "EC2AutoscalingLaunchConfig": {
+      "Type": "AWS::AutoScaling::LaunchConfiguration",
+      "DependsOn": [
+        "WebServerInstanceProfile"
+      ],
+      "Properties": {
+        "LaunchConfigurationName": "ec2-server-config",
+        "ImageId": {
+          "Fn::FindInMap": [
+            "RegionAMI",
+            {
+              "Ref": "AWS::Region"
+            },
+            "Linux"
+          ]
+        },
+        "InstanceType": {
+          "Ref": "InstanceType"
+        },
+        "SecurityGroups": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${SecurityGroupStack}-WSSGID"
+            }
+          }
+        ],
+        "IamInstanceProfile": {
+          "Ref": "WebServerInstanceProfile"
+        },
+        "UserData": {
+          "Fn::Base64": {
+            "Fn::Join": [
+              "",
+              [
+                "#!/bin/bash -xe\n",
+                "yum update -y aws-cfn-bootstrap\n",
+                "#Install the WebServer.\n",
+                "yum -y install httpd", "\n",
+                "chkconfig httpd on", "\n",
+                "echo \"Version ", {"Ref": "VersionParameter"}, "\" >> /var/www/html/index.html", "\n",
+                "service httpd start", "\n",
+                "/opt/aws/bin/cfn-signal -e $? ",
+                "         --stack ",
+                {
+                  "Ref": "AWS::StackName"
+                },
+                "         --resource EC2WebserverASGroup ",
+                "         --region ",
+                {
+                  "Ref": "AWS::Region"
+                },
+                "\n"
+              ]
+            ]
+          }
+        },
+        "KeyName": {
+          "Ref": "KeyPairName"
+        }
+      }
+    },
+    "EC2WebserverASGroup": {
+      "Type": "AWS::AutoScaling::AutoScalingGroup",
+      "Properties": {
+        "AutoScalingGroupName": "ec2-server-asg",
+        "MaxSize": 3,
+        "MinSize": 2,
+        "DesiredCapacity": 2,
+        "HealthCheckType": "EC2",
+        "LaunchConfigurationName": {
+          "Ref": "EC2AutoscalingLaunchConfig"
+        },
+        "VPCZoneIdentifier": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${VPCStackName}-PrivateSubnetId-B"
+            }
+          },
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${VPCStackName}-PrivateSubnetId-A"
+            }
+          }
+        ],
+        "TargetGroupARNs": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${ELBStackName}-TargetGroupArn"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "web-server-asg",
+            "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "component",
+            "Value": "double-digit-test",
+            "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "environment",
+            "Value": {
+              "Ref": "Environment"
+            },
+            "PropagateAtLaunch": "true"
+          },
+          {
+            "Key": "Scope",
+            "Value": "private",
+            "PropagateAtLaunch": "true"
+          }
+        ]
+      },
+      "CreationPolicy": {
+        "ResourceSignal": {
+          "Count": 2,
+          "Timeout": "PT15M"
+        }
+      },
+      "UpdatePolicy": {
+        "AutoScalingRollingUpdate": {
+          "MinInstancesInService": "1",
+          "MaxBatchSize": "1",
+          "PauseTime": "PT15M",
+          "WaitOnResourceSignals": "true"
+        }
+      }
+    }
+  }
+}

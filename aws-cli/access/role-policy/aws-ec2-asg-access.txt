@@ -1,0 +1,23 @@
+#VALIDATE TEMPLATE
+aws cloudformation validate-template --template-body file://aws-cloudformation/access/ec2-access-role-policy/aws-ec2-asg-role.json
+
+#Creaate role
+aws --profile yash iam create-role --role-name web-server-role \
+--assume-role-policy-document file://aws-cloudformation/access/ec2-access-role-policy/aws-ec2-asg-role.json
+
+#CREATE POLICY
+aws --profile yash iam create-policy --policy-name ec2-server-access-policy \
+--policy-document file://aws-cloudformation/access/ec2-access-role-policy/aws-ec2-asg-policy.json
+
+//CURRENTLY NOT REQUIRED
+#ATTACHE POLICY DOCUMENT
+aws --profile yash iam put-role-policy --role-name ec2-server-access-role \
+--policy-name jenkins-server-policy \
+--policy-document file://cloudformation/access/role-policy/aws-jenkins-access-policy.json
+
+#ATTACH AWS MANAGED POLICY
+aws --profile yash iam attach-role-policy --role-name web-server-role --policy-arn arn:aws:iam::ACC_NUM:policy/ec2-server-access-policy
+aws --profile yash iam attach-role-policy --role-name web-server-role --policy-arn arn:aws:iam::ACC_NUM:policy/ec2-server-access-policy
+
+#LIST ATTACHED POLICIES TO ROLE
+aws iam list-attached-role-policies --role-name web-server-role

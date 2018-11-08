@@ -1,0 +1,25 @@
+#validate the template
+aws cloudformation validate-template --template-body file://aws-cloudformation/elasticity/aws-asg-for-ec2.json
+
+#Execute this command if you want to UPDATE STACK
+aws cloudformation update-stack --stack-name asg-by-vivek --capabilities CAPABILITY_NAMED_IAM --template-body \
+file://aws-cloudformation/elasticity/aws-asg-for-ec2.json --parameters file://aws-cloudformation/elasticity/parameter/aws-asg-parameters.json
+
+#CREATE USING TEMPLATE FILE
+aws --profile yash cloudformation create-stack --stack-name asg-by-vivek --capabilities CAPABILITY_NAMED_IAM \
+--template-body file://aws-cloudformation/elasticity/aws-asg-for-ec2.json --parameters file://aws-cloudformation/elasticity/parameter/aws-asg-parameters.json
+
+#wait for stack to complete
+aws --profile yash cloudformation wait stack-create-complete --stack-name asg-by-vivek
+
+#DESCRIBE STACK CREATION EVENTS
+aws --profile yash cloudformation describe-stack-events \
+--stack-name asg-by-vivek \
+--query "StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]" \
+--output table
+
+echo 'Waiting for template to complete......'
+
+
+
+

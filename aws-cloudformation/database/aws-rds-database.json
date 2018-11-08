@@ -1,0 +1,141 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "RDS for Microservice",
+  "Parameters": {
+    "VPCStackName": {
+      "Description": "VPC to refer",
+      "Type": "String"
+    },
+    "SecurityGroupStack": {
+      "Description": "Name of the Security group template",
+      "Type": "String"
+    },
+    "Environment": {
+      "Default": "devl",
+      "Type": "String",
+      "AllowedValues": [
+        "devl",
+        "test",
+        "prod"
+      ]
+    },
+    "DBUser": {
+      "Type": "String",
+      "Description": "Master user for DB"
+    },
+    "DBPassword": {
+      "Type": "String",
+      "Description": "Master password for DB"
+    },
+    "DBAllocatedStorage": {
+      "Type": "Number",
+      "Description": "Allocated storage memory in GB",
+      "Default": "5"
+    },
+    "DBClass": {
+      "Default": "db.t2.micro",
+      "Description": "Database instance class",
+      "Type": "String",
+      "AllowedValues": [
+        "db.t2.micro",
+        "db.m1.small"
+      ],
+      "ConstraintDescription": "must select a valid database instance type."
+    }
+  },
+  "Conditions": {
+    "CreateProdResources": {
+      "Fn::Equals": [
+        {
+          "Ref": "Environment"
+        },
+        "prod"
+      ]
+    }
+  },
+  "Resources": {
+    "MicroserviceDBSubnetGroup": {
+      "Type": "AWS::RDS::DBSubnetGroup",
+      "Properties": {
+        "DBSubnetGroupDescription": "Subnets For Microservice DB",
+        "SubnetIds": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${VPCStackName}-PrivateSubnetIdA-DB"
+            }
+          },
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${VPCStackName}-PrivateSubnetIdB-DB"
+            }
+          }
+        ]
+      }
+    },
+    "MicroserviceDBInstance": {
+      "Type": "AWS::RDS::DBInstance",
+      "Properties": {
+        "DBName": "doubledigit",
+        "DBSubnetGroupName": {
+          "Ref": "MicroserviceDBSubnetGroup"
+        },
+        "AllocatedStorage": {
+          "Ref": "DBAllocatedStorage"
+        },
+        "DBInstanceClass": {
+          "Ref": "DBClass"
+        },
+        "Engine": "MySQL",
+        "EngineVersion": "5.6.40",
+        "PubliclyAccessible": false,
+        "VPCSecurityGroups": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${SecurityGroupStack}-DBSGID"
+            }
+          }
+        ],
+        "MultiAZ": {
+          "Fn::If": [
+            "CreateProdResources",
+            true,
+            false
+          ]
+        },
+        "MasterUsername": {
+          "Ref": "DBUser"
+        },
+        "MasterUserPassword": {
+          "Ref": "DBPassword"
+        },
+        "Tags": [
+          {
+            "Key": "Scope",
+            "Value": "private"
+          },
+          {
+            "Key": "Purpose",
+            "Value": "db"
+          },
+          {
+            "Key": "Environment",
+            "Value": {
+              "Ref": "Environment"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "JDBCConnectionString": {
+      "Description": "JDBC connection string for database",
+      "Value": {
+        "Fn::GetAtt": [
+          "MicroserviceDBInstance",
+          "Endpoint.Address"
+        ]
+      }
+    }
+  }
+}

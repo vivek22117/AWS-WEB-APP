@@ -1,0 +1,155 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "Create a multi-az, load balancer",
+  "Parameters": {
+    "VPCStackName": {
+      "Description": "VPC to refer",
+      "Type": "String"
+    },
+    "ELBName": {
+      "Description": "Name of the ELB",
+      "Type": "String",
+      "Default": "WEB-APP-ELB"
+    },
+    "SecurityGroupStack": {
+      "Description": "Name of the Security group template",
+      "Type": "String"
+    },
+    "Environment" : {
+      "Description" : "Environment to which cft is created",
+      "Type" : "String",
+      "Default" : "devl"
+    }
+  },
+  "Resources": {
+    "ApplicationLoadBalancer": {
+      "Type": "AWS::ElasticLoadBalancingV2::LoadBalancer",
+      "Properties": {
+        "Scheme": "internet-facing",
+        "Type": "application",
+        "Subnets": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${VPCStackName}-SubnetId-B"
+            }
+          },
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${VPCStackName}-SubnetId-A"
+            }
+          }
+        ],
+        "Name": {
+          "Ref": "ELBName"
+        },
+        "LoadBalancerAttributes": [
+          {
+            "Key": "idle_timeout.timeout_seconds",
+            "Value": 10
+          }
+        ],
+        "SecurityGroups": [
+          {
+            "Fn::ImportValue": {
+              "Fn::Sub": "${SecurityGroupStack}-ELBSGID"
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "elb-webserver"
+          },
+          {
+            "Key": "component",
+            "Value": "double-digit-test"
+          },
+          {
+            "Key": "environment",
+            "Value": {
+              "Ref": "Environment"
+            }
+          }
+        ]
+      }
+    },
+    "ELBTargetGroup": {
+      "Type": "AWS::ElasticLoadBalancingV2::TargetGroup",
+      "Properties": {
+        "HealthCheckIntervalSeconds": 30,
+        "HealthCheckTimeoutSeconds": 5,
+        "HealthyThresholdCount": 3,
+        "HealthCheckProtocol": "HTTP",
+        "Matcher": {
+          "HttpCode": "200"
+        },
+        "Port": 80,
+        "Protocol": "HTTP",
+        "UnhealthyThresholdCount": 5,
+        "Name": "Webserver-TargetGroup",
+        "VpcId": {
+          "Fn::ImportValue": {
+            "Fn::Sub": "${VPCStackName}-VPCId"
+          }
+        },
+        "TargetGroupAttributes": [
+          {
+            "Key": "deregistration_delay.timeout_seconds",
+            "Value": 60
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "Name",
+            "Value": "webserver-TG"
+          },
+          {
+            "Key": "component",
+            "Value": "double-digit-test"
+          },
+          {
+            "Key": "environment",
+            "Value": {
+              "Ref": "Environment"
+            }
+          }
+        ]
+      }
+    },
+    "ELBListener": {
+      "Type": "AWS::ElasticLoadBalancingV2::Listener",
+      "DependsOn": [
+        "ELBTargetGroup",
+        "ApplicationLoadBalancer"
+      ],
+      "Properties": {
+        "DefaultActions": [
+          {
+            "Type": "forward",
+            "TargetGroupArn": {
+              "Ref": "ELBTargetGroup"
+            }
+          }
+        ],
+        "LoadBalancerArn": {
+          "Ref": "ApplicationLoadBalancer"
+        },
+        "Port": "80",
+        "Protocol": "HTTP"
+      }
+    }
+  },
+  "Outputs": {
+    "ELBTargetGroupId": {
+      "Description": "The Target Group ARN",
+      "Value": {
+        "Ref": "ELBTargetGroup"
+      },
+      "Export": {
+        "Name": {
+          "Fn::Sub": "${AWS::StackName}-TargetGroupArn"
+        }
+      }
+    }
+  }
+}
