@@ -136,7 +136,7 @@
     "EC2WebserverASGroup": {
       "Type": "AWS::AutoScaling::AutoScalingGroup",
       "Properties": {
-        "AutoScalingGroupName": "ec2-server-asg",
+        "AutoScalingGroupName": "ec2-web-server-asg",
         "MaxSize": 3,
         "MinSize": 2,
         "DesiredCapacity": 2,
