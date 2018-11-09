@@ -11,10 +11,10 @@ pipeline {
             steps {
                 dir('aws-cloudformation/security/'){
                     sh "echo Creating VPC, Public Subnet and Private Subnet"
-                    sh 'aws cloudformation validate-template --template-body file://aws-infra-security-group.json'
+                    sh 'aws cloudformation --region ${params.REGION} validate-template --template-body file://aws-infra-security-group.json'
                     sh "aws cloudformation --region ${params.REGION} create-stack --stack-name security-group-by-vivek --template-body \
                         file://aws-infra-security-group.json --parameters ParameterKey=VPCStackName,ParameterValue=vpc-subnet-network-by-vivek"
-                    sh "aws cloudformation wait stack-create-complete --stack-name security-group-by-vivek"
+                    sh "aws cloudformation --region ${params.REGION} wait stack-create-complete --stack-name security-group-by-vivek"
                     sh "aws cloudformation --region ${params.REGION} describe-stack-events --stack-name security-group-by-vivek \
                         --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
                         --output table"
@@ -25,10 +25,10 @@ pipeline {
             steps {
                 dir('aws-cloudformation/loadbalancing/'){
                    sh 'echo Creating ELB for web application....'
-                   sh 'aws cloudformation validate-template --template-body file://aws-elb-for-ec2.json'
+                   sh 'aws cloudformation --region ${params.REGION} validate-template --template-body file://aws-elb-for-ec2.json'
                    sh "aws cloudformation --region ${params.REGION} create-stack --stack-name elb-by-vivek --template-body \
                        file://aws-elb-for-ec2.json --parameters file://parameter/aws-elb-parameters.json"
-                   sh 'aws cloudformation wait stack-create-complete --stack-name elb-by-vivek'
+                   sh 'aws cloudformation --region ${params.REGION} wait stack-create-complete --stack-name elb-by-vivek'
                    sh "aws cloudformation --region ${params.REGION} describe-stack-events --stack-name security-group-by-vivek \
                        --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
                        --output table"
@@ -39,11 +39,11 @@ pipeline {
             steps {
                 dir('aws-cloudformation/elasticity/'){
                     sh 'echo Creating ASG group and configuration for web application....'
-                    sh 'aws cloudformation validate-template --template-body file://aws-asg-for-ec2.json'
+                    sh 'aws cloudformation --region ${params.REGION} validate-template --template-body file://aws-asg-for-ec2.json'
                     sh "aws cloudformation --region ${params.REGION} create-stack --stack-name asg-by-vivek --template-body \
                         file://aws-asg-for-ec2.json --capabilities CAPABILITY_NAMED_IAM \
                         --parameters file://parameter/aws-asg-parameters.json"
-                    sh 'aws cloudformation wait stack-create-complete --stack-name asg-by-vivek'
+                    sh 'aws cloudformation --region ${params.REGION} wait stack-create-complete --stack-name asg-by-vivek'
                     sh "aws cloudformation --region ${params.REGION} describe-stack-events --stack-name asg-by-vivek \
                         --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
                         --output table"
