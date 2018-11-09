@@ -118,7 +118,7 @@ pipeline {
                 }
             }
          }
-         stage('web-app-asg'){
+         stage('rds-web-server'){
             steps {
                 dir('aws-cloudformation/database/'){
                     script {
