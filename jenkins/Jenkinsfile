@@ -16,7 +16,7 @@ pipeline {
                         file://aws-infra-security-group.json --parameters ParameterKey=VPCStackName,ParameterValue=vpc-subnet-network-by-vivek"
                     sh "aws cloudformation wait stack-create-complete --stack-name security-group-by-vivek"
                     sh "aws cloudformation describe-stack-events --stack-name security-group-by-vivek \
-                        --query "StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]" \
+                        --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
                         --output table"
                 }
             }
@@ -30,7 +30,7 @@ pipeline {
                        file://aws-elb-for-ec2.json --parameters file://parameter/aws-elb-parameters.json"
                    sh 'aws cloudformation wait stack-create-complete --stack-name elb-by-vivek'
                    sh "aws cloudformation describe-stack-events --stack-name security-group-by-vivek \
-                       --query "StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]" \
+                       --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
                        --output table"
                 }
             }
@@ -45,7 +45,7 @@ pipeline {
                         --parameters file://parameter/aws-asg-parameters.json"
                     sh 'aws cloudformation wait stack-create-complete --stack-name asg-by-vivek'
                     sh "aws cloudformation describe-stack-events --stack-name asg-by-vivek \
-                        --query "StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]" \
+                        --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
                         --output table"
                 }
             }
