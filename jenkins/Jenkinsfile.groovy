@@ -106,8 +106,8 @@ pipeline {
                     script {
                         def apply = true
                         def status = null
-                        def region = ${params.REGION}
-                        def stackName = ${params.ASGSTACK}
+                        def region = 'us-east-1'
+                        def stackName = 'asg-webapp-by-vivek'
                         try {
                             status = sh(script: "aws cloudformation describe-stacks --region ${params.REGION} \
                                 --stack-name ${params.ASGSTACK} --query Stacks[0].StackStatus --output text", returnStdout: true)
