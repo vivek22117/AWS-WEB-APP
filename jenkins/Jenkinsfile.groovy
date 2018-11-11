@@ -76,7 +76,6 @@ pipeline {
                             apply = true
                         } catch (err) {
                             apply = false
-                            sh "aws cloudformation delete-stack --stack-name ${params.ELBSTACK}"
                             sh 'echo Creating ELB for web application....'
                             sh "aws cloudformation --region ${params.REGION} validate-template --template-body file://aws-elb-for-ec2.json"
                             sh "aws cloudformation --region ${params.REGION} create-stack --stack-name ${params.ELBSTACK} --template-body \
@@ -115,8 +114,9 @@ pipeline {
                         } catch (err) {
                             apply = false
                             if (status == 'DELETE_FAILED' || 'ROLLBACK_COMPLETE' || 'ROLLBACK_FAILED' || 'UPDATE_ROLLBACK_FAILED') {
+                                sh "aws cloudformation delete-stack --stack-name ${params.ELBSTACK}"
                                 sh 'echo Creating ASG group and configuration for web application....'
-                                createASGStack($ { params.REGION }, $ { params.ASGSTACK })
+                                createASGStack(${ params.REGION }, ${ params.ASGSTACK })
                             }
                         }
                         if (apply) {
