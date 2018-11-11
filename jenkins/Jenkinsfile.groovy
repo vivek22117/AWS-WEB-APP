@@ -106,21 +106,21 @@ pipeline {
                     script {
                         def apply = true
                         def status = null
+                        def region = ${params.REGION}
+                        def stackName = ${params.ASGSTACK}
                         try {
                             status = sh(script: "aws cloudformation describe-stacks --region ${params.REGION} \
                                 --stack-name ${params.ASGSTACK} --query Stacks[0].StackStatus --output text", returnStdout: true)
                             sh "echo $status"
                             if (status == 'DELETE_FAILED' || 'ROLLBACK_COMPLETE' || 'ROLLBACK_FAILED' || 'UPDATE_ROLLBACK_FAILED') {
-                                sh "aws cloudformation delete-stack --stack-name ${params.ASGSTACK}"
+                                sh "aws cloudformation delete-stack --stack-name ${params.ASGSTACK} --region ${params.REGION}"
                                 sh 'echo Creating ASG group and configuration for web application....'
-                                createASGStack('${params.REGION}', '${params.ASGSTACK}')
+                                createASGStack(region, stackName)
                             }
                             apply = true
                         } catch (err) {
                             apply = false
                             sh 'echo Creating ASG group and configuration for first time....'
-                            def region = ${params.REGION}
-                            def stackName = ${params.ASGSTACK}
                             createASGStack(region, stackName)
                         }
                         if (apply) {
