@@ -1,4 +1,4 @@
-def createSGStack(region, stack, vpc) {
+def createSGStack(String region, String stack, String vpc) {
     sh "aws cloudformation --region ${region} validate-template --template-body file://aws-infra-security-group.json"
     sh "aws cloudformation --region ${region} create-stack --stack-name ${stack} --template-body \
         file://aws-infra-security-group.json --parameters ParameterKey=VPCStackName,ParameterValue=${vpc}"
@@ -8,7 +8,7 @@ def createSGStack(region, stack, vpc) {
             --output table"
 }
 
-def createASGStack(region, stack) {
+def createASGStack(String region, String stack) {
     sh "aws cloudformation --region ${region} validate-template --template-body file://aws-asg-for-ec2.json"
     sh "aws cloudformation --region ${region} create-stack --stack-name ${stack} --template-body \
         file://aws-asg-for-ec2.json --capabilities CAPABILITY_NAMED_IAM --parameters file://parameter/aws-asg-parameters.json"
