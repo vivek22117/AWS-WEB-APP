@@ -2,10 +2,10 @@ pipeline {
     agent any
 
     parameters {
-        string(name: 'VPC_NAME', defaultValue: 'double-digit-vpc', description: 'Name of VPC Created')
+        string(name: 'VPC_NAME', defaultValue: 'vpc-subnet-network-by-vivek', description: 'Name of VPC Created')
         string(name: 'REGION', defaultValue: 'us-east-1', description:'worspace to use in Terraform')
         string(name: 'SGSTACK', defaultValue: 'security-group-by-vivek', description:'worspace to use in Terraform')
-        string(name: 'ELBSTACK', defaultValue: 'security-group-by-vivek', description:'worspace to use in Terraform')
+        string(name: 'ELBSTACK', defaultValue: 'elb-by-vivek', description:'worspace to use in Terraform')
         string(name: 'ASGSTACK', defaultValue: 'asg-webapp-by-vivek', description:'worspace to use in Terraform')
         string(name: 'DBSTACK', defaultValue: 'rds-by-vivek', description:'RDS for Web Server')
     }
@@ -25,7 +25,7 @@ pipeline {
                              sh "echo Creating Security Group for Web-App"
                              sh "aws cloudformation --region ${params.REGION} validate-template --template-body file://aws-infra-security-group.json"
                              sh "aws cloudformation --region ${params.REGION} create-stack --stack-name ${params.SGSTACK} --template-body \
-                                file://aws-infra-security-group.json --parameters ParameterKey=VPCStackName,ParameterValue=vpc-subnet-network-by-vivek"
+                                file://aws-infra-security-group.json --parameters ParameterKey=VPCStackName,ParameterValue=${params.VPC_NAME}"
                              sh "aws cloudformation --region ${params.REGION} wait stack-create-complete --stack-name ${params.SGSTACK}"
                              sh "aws cloudformation --region ${params.REGION} describe-stack-events --stack-name ${params.SGSTACK} \
                                 --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
@@ -36,7 +36,7 @@ pipeline {
                                  sh "echo Stack exists, attempting update..."
                                  sh "aws cloudformation --region ${params.REGION} update-stack --stack-name \
                                     ${params.SGSTACK} --template-body file://aws-infra-security-group.json \
-                                    --parameters ParameterKey=VPCStackName,ParameterValue=vpc-subnet-network-by-vivek"
+                                    --parameters ParameterKey=VPCStackName,ParameterValue=${params.VPC_NAME}"
                             } catch(err){
                                 sh "echo Finished create/update - no updates to be performed"
                             }
@@ -60,10 +60,10 @@ pipeline {
                             apply = false
                             sh 'echo Creating ELB for web application....'
                             sh "aws cloudformation --region ${params.REGION} validate-template --template-body file://aws-elb-for-ec2.json"
-                            sh "aws cloudformation --region ${params.REGION} create-stack --stack-name elb-by-vivek --template-body \
+                            sh "aws cloudformation --region ${params.REGION} create-stack --stack-name ${params.ELBSTACK} --template-body \
                                 file://aws-elb-for-ec2.json --parameters file://parameter/aws-elb-parameters.json"
-                            sh "aws cloudformation --region ${params.REGION} wait stack-create-complete --stack-name elb-by-vivek"
-                            sh "aws cloudformation --region ${params.REGION} describe-stack-events --stack-name security-group-by-vivek \
+                            sh "aws cloudformation --region ${params.REGION} wait stack-create-complete --stack-name ${params.ELBSTACK}"
+                            sh "aws cloudformation --region ${params.REGION} describe-stack-events --stack-name ${params.ELBSTACK} \
                                 --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
                                 --output table"
                         }
@@ -72,7 +72,7 @@ pipeline {
                                 sh "echo Stack exists, attempting update..."
                                 sh "aws cloudformation --region ${params.REGION} update-stack --stack-name \
                                     ${params.ELBSTACK} --template-body file://aws-elb-for-ec2.json \
-                                    --parameters ParameterKey=VPCStackName,ParameterValue=vpc-subnet-network-by-vivek"
+                                    --parameters file://parameter/aws-elb-parameters.json"
                             } catch(err){
                                 sh "echo Finished create/update - no updates to be performed"
                             }
@@ -96,10 +96,10 @@ pipeline {
                             apply = false
                             sh 'echo Creating ASG group and configuration for web application....'
                             sh "aws cloudformation --region ${params.REGION} validate-template --template-body file://aws-asg-for-ec2.json"
-                            sh "aws cloudformation --region ${params.REGION} create-stack --stack-name asg-webapp-by-vivek --template-body \
+                            sh "aws cloudformation --region ${params.REGION} create-stack --stack-name ${params.ASGSTACK} --template-body \
                                 file://aws-asg-for-ec2.json --capabilities CAPABILITY_NAMED_IAM --parameters file://parameter/aws-asg-parameters.json"
-                            sh "aws cloudformation --region ${params.REGION} wait stack-create-complete --stack-name asg-webapp-by-vivek"
-                            sh "aws cloudformation --region ${params.REGION} describe-stack-events --stack-name asg-webapp-by-vivek \
+                            sh "aws cloudformation --region ${params.REGION} wait stack-create-complete --stack-name ${params.ASGSTACK}"
+                            sh "aws cloudformation --region ${params.REGION} describe-stack-events --stack-name ${params.ASGSTACK} \
                                 --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
                                 --output table"
                         }
@@ -108,7 +108,7 @@ pipeline {
                                 sh "echo Stack exists, attempting update..."
                                 sh "aws cloudformation --region ${params.REGION} update-stack --stack-name \
                                     ${params.ASGSTACK} --template-body file://aws-asg-for-ec2.json \
-                                    --parameters ParameterKey=VPCStackName,ParameterValue=vpc-subnet-network-by-vivek"
+                                    --parameters file://parameter/aws-asg-parameters.json"
                             } catch(err){
                                 sh "echo Finished create/update - no updates to be performed"
                             }
