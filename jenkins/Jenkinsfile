@@ -111,6 +111,13 @@ pipeline {
                                     --parameters file://parameter/aws-asg-parameters.json"
                             } catch(err){
                                 sh "echo Finished create/update - no updates to be performed"
+                                sh "aws cloudformation --region ${params.REGION} validate-template --template-body file://aws-asg-for-ec2.json"
+                                sh "aws cloudformation --region ${params.REGION} create-stack --stack-name ${params.ASGSTACK} --template-body \
+                                    file://aws-asg-for-ec2.json --capabilities CAPABILITY_NAMED_IAM --parameters file://parameter/aws-asg-parameters.json"
+                                sh "aws cloudformation --region ${params.REGION} wait stack-create-complete --stack-name ${params.ASGSTACK}"
+                                sh "aws cloudformation --region ${params.REGION} describe-stack-events --stack-name ${params.ASGSTACK} \
+                                    --query 'StackEvents[].[{Resource:LogicalResourceId,Status:ResourceStatus,Reason:ResourceStatusReason}]' \
+                                    --output table"
                             }
                         }
                         sh "echo Finished create/update successfully!"
