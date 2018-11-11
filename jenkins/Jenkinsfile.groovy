@@ -113,13 +113,13 @@ pipeline {
                             if (status == 'DELETE_FAILED' || 'ROLLBACK_COMPLETE' || 'ROLLBACK_FAILED' || 'UPDATE_ROLLBACK_FAILED') {
                                 sh "aws cloudformation delete-stack --stack-name ${params.ASGSTACK}"
                                 sh 'echo Creating ASG group and configuration for web application....'
-                                createASGStack($ { params.REGION }, $ { params.ASGSTACK })
+                                createASGStack(${params.REGION}, ${params.ASGSTACK})
                             }
                             apply = true
                         } catch (err) {
                             apply = false
-                            sh 'echo Creating ASG group and configuration for web application....'
-                            createASGStack($ { params.REGION }, $ { params.ASGSTACK })
+                            sh 'echo Creating ASG group and configuration for first time....'
+                            createASGStack(${params.REGION}, ${params.ASGSTACK})
                         }
                         if (apply) {
                             try {
