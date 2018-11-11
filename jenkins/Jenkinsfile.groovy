@@ -119,7 +119,9 @@ pipeline {
                         } catch (err) {
                             apply = false
                             sh 'echo Creating ASG group and configuration for first time....'
-                            createASGStack('${params.REGION}', '${params.ASGSTACK}')
+                            def region = ${params.REGION}
+                            def stackName = ${params.ASGSTACK}
+                            createASGStack(region, stackName)
                         }
                         if (apply) {
                             try {
